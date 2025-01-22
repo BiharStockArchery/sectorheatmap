@@ -2,6 +2,7 @@ import yfinance as yf
 from flask import Flask, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -36,9 +37,17 @@ def get_sector_data():
 
 # Define the background task function
 def update_sector_data():
-    print("Running background task to update sector data...")
-    sector_data = get_sector_data()
-    print("Sector data updated:", sector_data)
+    current_time = datetime.now().time()
+    start_time = datetime.strptime("10:00:00", "%H:%M:%S").time()
+    end_time = datetime.strptime("15:30:00", "%H:%M:%S").time()
+
+    # Only run the task if the current time is between 10:00 AM and 3:30 PM
+    if start_time <= current_time <= end_time:
+        print("Running background task to update sector data...")
+        sector_data = get_sector_data()
+        print("Sector data updated:", sector_data)
+    else:
+        print(f"Current time ({current_time}) is outside the market hours (10:00 AM - 3:30 PM). Task skipped.")
 
 @app.route('/sector-heatmap')
 def sector_heatmap():
