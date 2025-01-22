@@ -1,5 +1,6 @@
 import yfinance as yf
 from flask import Flask, jsonify
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
 
 app = Flask(__name__)
@@ -33,6 +34,12 @@ def get_sector_data():
     except Exception as e:
         return {"error": str(e)}
 
+# Define the background task function
+def update_sector_data():
+    print("Running background task to update sector data...")
+    sector_data = get_sector_data()
+    print("Sector data updated:", sector_data)
+
 @app.route('/sector-heatmap')
 def sector_heatmap():
     sector_data = get_sector_data()
@@ -43,6 +50,14 @@ def sector_heatmap():
     return jsonify({"status": "success", "data": sector_data})
 
 if __name__ == '__main__':
-    # Get port dynamically from environment variables (Railway sets this automatically)
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Set up the scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=update_sector_data, trigger="interval", seconds=50)  # Run every 50 seconds
+    scheduler.start()
+
+    # Ensure Flask is properly shut down with the scheduler
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        app.run(host='0.0.0.0', port=port, debug=True)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
